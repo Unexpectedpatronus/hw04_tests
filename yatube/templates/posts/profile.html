@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}
+  Профайл пользователя {{ profile.get_full_name }}
+{% endblock %}
+{% block content %}
+
+  <h1>Все посты пользователя {{ profile.get_full_name }}</h1>
+  <h3>Всего постов: {{ profile.posts.count }} </h3>
+
+  {% for post in page_obj %}
+    {% include 'includes/post.html' with show_group_link=True %}
+  {% endfor %}
+
+
+  {% include 'includes/paginator.html' %}
+
+{% endblock %}
