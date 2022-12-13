@@ -1,20 +1,13 @@
-import shutil
-import tempfile
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase, override_settings
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from ..forms import PostForm
 from ..models import Group, Post
 
-TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
-
 User = get_user_model()
 
 
-@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -26,17 +19,13 @@ class PostFormTests(TestCase):
             slug='test_slug',
             description='test description'
         )
-        Post.objects.create(
-            text='Тестовый текст',
-            group=cls.group,
+        cls.post = Post.objects.create(
+            text='Тестовый пост',
+            pub_date='Тестовая дата',
             author=cls.user,
+            group=cls.group,
         )
         cls.form = PostForm()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
         self.guest_client = Client()
@@ -50,18 +39,25 @@ class PostFormTests(TestCase):
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Тестовый текст',
+            'group': self.group.pk,
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True
         )
-        self.assertRedirects(response, reverse('posts:profile', kwargs=(
-            {'username': f'{self.user}'})))
+        self.assertRedirects(
+            response, reverse(
+                'posts:profile', kwargs={'username': f'{self.user.username}'}
+            )
+        )
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text='Тестовый текст',
+                text=self.post.text,
+                pub_date=self.post.pub_date,
+                author=self.user,
+                group=self.group,
             ).exists()
         )
 
@@ -72,3 +68,90 @@ class PostFormTests(TestCase):
     def test_title_help_text(self):
         text_help_text = PostFormTests.form.fields['text'].help_text
         self.assertEqual(text_help_text, 'Введите текст поста')
+
+    def test_edit_post_unauthorized(self):
+        """Неавторизованный пользователь хочет отредактировать пост"""
+        posts_count = Post.objects.count()
+        form_data = {
+            'text': 'Тестовый текст',
+            'group': self.group.pk
+        }
+        response = self.guest_client.post(
+            reverse(
+                'posts:post_edit', kwargs={'post_id': f'{self.post.pk}'}
+            ),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response, f'/auth/login/?next=/posts/{self.post.pk}/edit/')
+        self.assertEqual(Post.objects.count(), posts_count)
+        self.assertTrue(
+            Post.objects.filter(
+                text=self.post.text,
+                pub_date=self.post.pub_date,
+                author=self.user,
+                group=self.group,
+            ).exists()
+        )
+
+    def test_create_post_unauthorized(self):
+        """Неавторизованный пользователь хочет создать пост"""
+        posts_count = Post.objects.count()
+        form_data = {
+            'text': 'Тестовый текст',
+            'group': self.group.pk
+        }
+        response = self.guest_client.post(
+            reverse('posts:post_create'),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response, '/auth/login/?next=/create/')
+        self.assertEqual(Post.objects.count(), posts_count)
+
+    def test_edit_post_not_author(self):
+        """Юзер хочет отредактировать чужой пост"""
+        posts_count = Post.objects.count()
+        form_data = {
+            'text': 'Тестовый текст',
+            'group': self.group.pk
+        }
+        response = self.authorized_client_not_author.post(
+            reverse(
+                'posts:post_edit', kwargs={'post_id': f'{self.post.pk}'}
+            ),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response, f'/posts/{self.post.pk}/')
+        self.assertEqual(Post.objects.count(), posts_count)
+        self.assertTrue(
+            Post.objects.filter(
+                text=self.post.text,
+                pub_date=self.post.pub_date,
+                author=self.user,
+                group=self.group,
+            ).exists()
+        )
+
+    def test_edit_post_author(self):
+        """Автор хочет отредактировать свой пост"""
+        posts_count = Post.objects.count()
+        form_data = {
+            'text': 'Тестовый текст',
+            'group': self.group.pk
+        }
+        response = self.authorized_client.post(
+            reverse(
+                'posts:post_edit', kwargs={'post_id': f'{self.post.pk}'}
+            ),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response, f'/posts/{self.post.pk}/'
+        )
+        self.assertEqual(Post.objects.count(), posts_count)

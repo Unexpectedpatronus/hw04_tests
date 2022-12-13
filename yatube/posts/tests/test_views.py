@@ -5,6 +5,8 @@ from django.urls import reverse
 
 from ..models import Group, Post
 
+NUMBER_OF_TESTED_PAGES: int = 13
+
 User = get_user_model()
 
 
@@ -36,7 +38,6 @@ class PostPagesTests(TestCase):
         self.authorized_client_not_author = Client()
         self.authorized_client_not_author.force_login(self.user_not_author)
 
-    # Проверяем используемые шаблоны
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         # Собираем в словарь пары "имя_html_шаблона: reverse(name)"
@@ -70,16 +71,20 @@ class PostPagesTests(TestCase):
 
     def test_group_list_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse(
-            'posts:group_list',
-            kwargs=({'slug': f'{self.post.group.slug}'})))
+        response = self.authorized_client.get(
+            reverse(
+                'posts:group_list', kwargs={'slug': f'{self.post.group.slug}'}
+            )
+        )
         first_object = response.context['page_obj'][0]
         post_text_0 = first_object.text
         post_author_0 = first_object.author.username
-        post_group_0 = first_object.group.title
+        post_group_title_0 = first_object.group.title
+        post_group_0 = first_object.group
         self.assertEqual(post_text_0, 'Тестовый пост')
         self.assertEqual(post_author_0, 'author')
-        self.assertEqual(post_group_0, 'Тестовая группа')
+        self.assertEqual(post_group_title_0, 'Тестовая группа')
+        self.assertEqual(post_group_0, self.group)
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -88,10 +93,12 @@ class PostPagesTests(TestCase):
             kwargs=({'username': f'{self.user}'})))
         first_object = response.context['page_obj'][0]
         post_text_0 = first_object.text
-        post_author_0 = first_object.author.username
+        post_author_username_0 = first_object.author.username
+        post_author_0 = first_object.author
         post_group_0 = first_object.group.title
         self.assertEqual(post_text_0, 'Тестовый пост')
-        self.assertEqual(post_author_0, 'author')
+        self.assertEqual(post_author_username_0, 'author')
+        self.assertEqual(post_author_0, self.user)
         self.assertEqual(post_group_0, 'Тестовая группа')
 
     def test_post_detail_show_correct_context(self):
@@ -109,15 +116,35 @@ class PostPagesTests(TestCase):
 
     def test_create_post_show_correct_context(self):
         """Шаблон create_post сформирован с правильным контекстом."""
-        response = self.authorized_client.get(
+        response = self.authorized_client_not_author.get(
             reverse('posts:post_create'))
         form_fields = {
             'text': forms.fields.CharField,
+            'group': forms.fields.ChoiceField
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
+        self.assertFalse(response.context.get('is_edit'))
+
+    def test_post_edit_show_correct_context(self):
+        """Шаблон create_post для редактирования
+        сформирован с правильным контекстом."""
+        response = self.authorized_client.get(
+            reverse(
+                'posts:post_edit', kwargs={'post_id': f'{self.post.id}'}
+            )
+        )
+        form_fields = {
+            'text': forms.fields.CharField,
+            'group': forms.fields.ChoiceField,
+        }
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
+        self.assertTrue(response.context.get('is_edit'))
 
 
 class PaginatorViewsTest(TestCase):
@@ -132,15 +159,15 @@ class PaginatorViewsTest(TestCase):
             slug='test_slug',
             description='test description',
         )
-        cls.post_list = []
-        for i in range(0, 13):
-            cls.post_list.append(
-                Post.objects.create(
-                    text=f'#{i} Текст тестового поста #{i}',
-                    author=cls.user,
-                    group=cls.group,
-                )
+        post_list = []
+        for i in range(NUMBER_OF_TESTED_PAGES):
+            new_post = Post(
+                text=f'#{i} Текст тестового поста #{i}',
+                author=cls.user,
+                group=cls.group,
             )
+            post_list.append(new_post)
+        cls.post_list = Post.objects.bulk_create(post_list)
 
     def setUp(self):
         self.guest_client = Client()
