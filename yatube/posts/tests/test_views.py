@@ -78,13 +78,12 @@ class PostPagesTests(TestCase):
         )
         first_object = response.context['page_obj'][0]
         post_text_0 = first_object.text
-        post_author_0 = first_object.author.username
-        post_group_title_0 = first_object.group.title
+        post_author_0 = first_object.author
         post_group_0 = first_object.group
         self.assertEqual(post_text_0, 'Тестовый пост')
-        self.assertEqual(post_author_0, 'author')
-        self.assertEqual(post_group_title_0, 'Тестовая группа')
+        self.assertEqual(post_author_0, self.user)
         self.assertEqual(post_group_0, self.group)
+        self.assertTrue(response.context.get('group'))
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -93,13 +92,12 @@ class PostPagesTests(TestCase):
             kwargs=({'username': f'{self.user}'})))
         first_object = response.context['page_obj'][0]
         post_text_0 = first_object.text
-        post_author_username_0 = first_object.author.username
         post_author_0 = first_object.author
-        post_group_0 = first_object.group.title
+        post_group_0 = first_object.group
         self.assertEqual(post_text_0, 'Тестовый пост')
-        self.assertEqual(post_author_username_0, 'author')
         self.assertEqual(post_author_0, self.user)
-        self.assertEqual(post_group_0, 'Тестовая группа')
+        self.assertEqual(post_group_0, self.group)
+        self.assertTrue(response.context.get('profile'))
 
     def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -107,12 +105,12 @@ class PostPagesTests(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': self.post.id})
         )
         first_object = response.context['post']
-        post_author_0 = first_object.author.username
+        post_author_0 = first_object.author
         post_text_0 = first_object.text
-        post_group_0 = first_object.group.title
-        self.assertEqual(post_author_0, 'author')
+        post_group_0 = first_object.group
+        self.assertEqual(post_author_0, self.user)
         self.assertEqual(post_text_0, 'Тестовый пост')
-        self.assertEqual(post_group_0, 'Тестовая группа')
+        self.assertEqual(post_group_0, self.group)
 
     def test_create_post_show_correct_context(self):
         """Шаблон create_post сформирован с правильным контекстом."""

@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..forms import PostForm
 from ..models import Group, Post
 
 User = get_user_model()
@@ -25,7 +24,6 @@ class PostFormTests(TestCase):
             author=cls.user,
             group=cls.group,
         )
-        cls.form = PostForm()
 
     def setUp(self):
         self.guest_client = Client()
@@ -54,20 +52,11 @@ class PostFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text=self.post.text,
-                pub_date=self.post.pub_date,
+                text=form_data['text'],
                 author=self.user,
-                group=self.group,
+                group=form_data['group'],
             ).exists()
         )
-
-    def test_title_label(self):
-        text_label = PostFormTests.form.fields['text'].label
-        self.assertEqual(text_label, 'Текст поста')
-
-    def test_title_help_text(self):
-        text_help_text = PostFormTests.form.fields['text'].help_text
-        self.assertEqual(text_help_text, 'Введите текст поста')
 
     def test_edit_post_unauthorized(self):
         """Неавторизованный пользователь хочет отредактировать пост"""
@@ -88,10 +77,9 @@ class PostFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count)
         self.assertTrue(
             Post.objects.filter(
-                text=self.post.text,
-                pub_date=self.post.pub_date,
-                author=self.user,
-                group=self.group,
+                id=self.post.id,
+                author=self.post.author,
+                group=self.post.group,
             ).exists()
         )
 
@@ -130,10 +118,9 @@ class PostFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count)
         self.assertTrue(
             Post.objects.filter(
-                text=self.post.text,
-                pub_date=self.post.pub_date,
-                author=self.user,
-                group=self.group,
+                id=self.post.id,
+                author=self.post.author,
+                group=self.post.group,
             ).exists()
         )
 
@@ -155,3 +142,11 @@ class PostFormTests(TestCase):
             response, f'/posts/{self.post.pk}/'
         )
         self.assertEqual(Post.objects.count(), posts_count)
+        self.assertTrue(
+            Post.objects.filter(
+                id=self.post.id,
+                text=form_data['text'],
+                author=self.post.author,
+                group=form_data['group'],
+            ).exists()
+        )
