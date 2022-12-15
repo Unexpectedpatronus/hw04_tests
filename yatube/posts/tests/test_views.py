@@ -63,11 +63,11 @@ class PostPagesTests(TestCase):
         response = self.authorized_client.get(reverse('posts:index'))
         first_object = response.context['page_obj'][0]
         post_text_0 = first_object.text
-        post_author_0 = first_object.author.username
-        post_group_0 = first_object.group.title
+        post_author_0 = first_object.author
+        post_group_0 = first_object.group
         self.assertEqual(post_text_0, 'Тестовый пост')
-        self.assertEqual(post_author_0, 'author')
-        self.assertEqual(post_group_0, 'Тестовая группа')
+        self.assertEqual(post_author_0, self.user)
+        self.assertEqual(post_group_0, self.group)
 
     def test_group_list_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
@@ -84,6 +84,8 @@ class PostPagesTests(TestCase):
         self.assertEqual(post_author_0, self.user)
         self.assertEqual(post_group_0, self.group)
         self.assertTrue(response.context.get('group'))
+        group_object = response.context['group']
+        self.assertEqual(group_object, self.group)
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -98,6 +100,8 @@ class PostPagesTests(TestCase):
         self.assertEqual(post_author_0, self.user)
         self.assertEqual(post_group_0, self.group)
         self.assertTrue(response.context.get('profile'))
+        profile_object = response.context['profile']
+        self.assertEqual(profile_object, self.user)
 
     def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""

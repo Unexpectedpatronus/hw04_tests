@@ -78,6 +78,8 @@ class PostFormTests(TestCase):
         self.assertTrue(
             Post.objects.filter(
                 id=self.post.id,
+                text=self.post.text,
+                pub_date=self.post.pub_date,
                 author=self.post.author,
                 group=self.post.group,
             ).exists()
@@ -119,6 +121,8 @@ class PostFormTests(TestCase):
         self.assertTrue(
             Post.objects.filter(
                 id=self.post.id,
+                text=self.post.text,
+                pub_date=self.post.pub_date,
                 author=self.post.author,
                 group=self.post.group,
             ).exists()
@@ -146,6 +150,7 @@ class PostFormTests(TestCase):
             Post.objects.filter(
                 id=self.post.id,
                 text=form_data['text'],
+                pub_date=self.post.pub_date,
                 author=self.post.author,
                 group=form_data['group'],
             ).exists()
