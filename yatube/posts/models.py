@@ -35,16 +35,20 @@ class Post(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Автор',
         related_name='posts',
-
     )
     group = models.ForeignKey(
         Group,
-        blank=True,
-        null=True,
         on_delete=models.SET_NULL,
         verbose_name='Группа',
         related_name='posts',
+        blank=True,
+        null=True,
         help_text='Группа, к которой будет относиться пост',
+    )
+    image = models.ImageField(
+        verbose_name='Картинка',
+        upload_to='posts/',
+        blank=True
     )
 
     class Meta:

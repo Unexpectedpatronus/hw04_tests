@@ -116,13 +116,15 @@ class PostPagesTests(TestCase):
         self.assertEqual(post_text_0, 'Тестовый пост')
         self.assertEqual(post_group_0, self.group)
 
+
     def test_create_post_show_correct_context(self):
         """Шаблон create_post сформирован с правильным контекстом."""
         response = self.authorized_client_not_author.get(
             reverse('posts:post_create'))
         form_fields = {
             'text': forms.fields.CharField,
-            'group': forms.fields.ChoiceField
+            'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -141,6 +143,7 @@ class PostPagesTests(TestCase):
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
+            'image': forms.fields.ImageField,
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
