@@ -11,10 +11,6 @@ User = get_user_model()
 
 
 class PostPagesTests(TestCase):
-    """
-    Тестируется, что view-классы используют ожидаемые HTML-шаблоны.
-    """
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -115,7 +111,6 @@ class PostPagesTests(TestCase):
         self.assertEqual(post_author_0, self.user)
         self.assertEqual(post_text_0, 'Тестовый пост')
         self.assertEqual(post_group_0, self.group)
-
 
     def test_create_post_show_correct_context(self):
         """Шаблон create_post сформирован с правильным контекстом."""

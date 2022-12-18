@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Comment, Group, Post
 
 User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -30,6 +30,11 @@ class PostFormTests(TestCase):
             pub_date='Тестовая дата',
             author=cls.user,
             group=cls.group,
+        )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text='Тестовый комментарий',
         )
 
     @classmethod
@@ -86,7 +91,7 @@ class PostFormTests(TestCase):
         )
 
     def test_edit_post_unauthorized(self):
-        """Неавторизованный пользователь хочет отредактировать пост"""
+        """Неавторизованный пользователь хочет отредактировать пост."""
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Тестовый текст',
@@ -114,7 +119,7 @@ class PostFormTests(TestCase):
         )
 
     def test_create_post_unauthorized(self):
-        """Неавторизованный пользователь хочет создать пост"""
+        """Неавторизованный пользователь хочет создать пост."""
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Тестовый текст',
@@ -130,7 +135,7 @@ class PostFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count)
 
     def test_edit_post_not_author(self):
-        """Юзер хочет отредактировать чужой пост"""
+        """Юзер хочет отредактировать чужой пост."""
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Тестовый текст',
@@ -158,7 +163,7 @@ class PostFormTests(TestCase):
         )
 
     def test_edit_post_author(self):
-        """Автор хочет отредактировать свой пост"""
+        """Автор хочет отредактировать свой пост."""
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Тестовый текст',
@@ -183,4 +188,39 @@ class PostFormTests(TestCase):
                 author=self.post.author,
                 group=form_data['group'],
             ).exists()
+        )
+
+    def test_comment_authorized_client(self):
+        """После успешной отправки комментарий появляется на странице поста."""
+        form_data = {
+            'text': 'Тестовый комментарий',
+        }
+        comments_count = Comment.objects.count()
+        response = self.authorized_client.post(
+            reverse(
+                'posts:add_comment', kwargs={'post_id': f'{self.post.pk}'}
+            ),
+            data=form_data,
+            follow=True,
+        )
+        self.assertRedirects(response, f'/posts/{self.post.pk}/')
+        self.assertEqual(Comment.objects.count(), comments_count + 1)
+        self.assertTrue(
+            Comment.objects.filter(text='Тестовый комментарий').exists()
+        )
+
+    def test_comment_unauthorized_client(self):
+        """Неавторизованный пользователь не может комментировать посты."""
+        form_data = {
+            'text': 'Тестовый комментарий',
+        }
+        response = self.guest_client.post(
+            reverse(
+                'posts:add_comment', kwargs={'post_id': f'{self.post.pk}'}
+            ),
+            data=form_data,
+            follow=True,
+        )
+        self.assertRedirects(
+            response, f'/auth/login/?next=/posts/{self.post.pk}/comment/'
         )
